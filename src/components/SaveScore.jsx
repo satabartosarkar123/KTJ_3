@@ -1,5 +1,6 @@
-import { Fragment, useState } from 'react'
-import { createPlayer } from '../utils/fauna.helpers'
+import { useState } from 'react'
+import { scoresRef } from '../firebase'
+import { push } from 'firebase/database'
 
 function SaveScore({ category, score, setError, resetGame }) {
 	const [playerName, setPlayerName] = useState('')
@@ -7,22 +8,29 @@ function SaveScore({ category, score, setError, resetGame }) {
 	const saveScore = async e => {
 		e.preventDefault()
 
-		if (!playerName || !category || !score) return
-
-		try {
-			await createPlayer({ category, name: playerName.trim(), score })
-		} catch (error) {
-			console.log(error)
-			setError('🙁 Error saving player score.')
+		if (!playerName) {
+			setError('Please enter your name.')
+			return
 		}
 
-		resetGame()
+		try {
+			push(scoresRef, {
+				name: playerName,
+				score: score,
+				category: category,
+				timestamp: new Date().toISOString(),
+			})
+
+			resetGame()
+		} catch (error) {
+			setError('Failed to save score.')
+		}
 	}
 
 	return (
 		<form className='score-form' onSubmit={saveScore}>
 			{score ? (
-				<Fragment>
+				<>
 					<h3>You got a score! 🙌</h3>
 					<p>Enter your name below to save your score.</p>
 					<input
@@ -36,7 +44,7 @@ function SaveScore({ category, score, setError, resetGame }) {
 						Save
 					</button>
 					<span>or</span>
-				</Fragment>
+				</>
 			) : (
 				<h3>You didn&apos;t get a score! 😥</h3>
 			)}
